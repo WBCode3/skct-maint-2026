@@ -26,7 +26,7 @@ export const Lobby: React.FC<LobbyProps> = ({
 }) => {
   const [selectedMockId, setSelectedMockId] = useState<number>(1);
   const [mode, setMode] = useState<ExamMode>('real');
-  const [viewMode, setViewMode] = useState<ViewMode>('multi');
+  const [viewMode, setViewMode] = useState<ViewMode>('single');
   const [selectedSubjects, setSelectedSubjects] = useState<SubjectId[]>(
     SUBJECTS.map((s) => s.id),
   );
@@ -58,7 +58,7 @@ export const Lobby: React.FC<LobbyProps> = ({
     onStartExam({
       mockId: selectedMockId,
       mode,
-      viewMode,
+      viewMode: mode === 'real' ? 'single' : viewMode,
       selectedSubjects: subjectsToRun,
       allowBackInRealSingle: mode === 'real' ? allowBackInRealSingle : true,
       autoClearScratchOnNext,
@@ -159,7 +159,10 @@ export const Lobby: React.FC<LobbyProps> = ({
                 <button
                   type="button"
                   className={`choice-btn ${mode === 'real' ? 'selected' : ''}`}
-                  onClick={() => setMode('real')}
+                  onClick={() => {
+                    setMode('real');
+                    setViewMode('single');
+                  }}
                 >
                   <div className="choice-btn-title">실전 모드</div>
                   <div className="choice-btn-desc">
@@ -180,21 +183,34 @@ export const Lobby: React.FC<LobbyProps> = ({
             </div>
 
             <div className="config-group">
-              <span className="config-label">문제 보기 방식</span>
+              <span className="config-label">
+                문제 보기 방식{' '}
+                {mode === 'real' && (
+                  <span style={{ color: '#ea002c', fontWeight: 600, marginLeft: '6px' }}>
+                    (실전 모드는 한 문제씩 고정)
+                  </span>
+                )}
+              </span>
               <div className="choice-grid-2">
                 <button
                   type="button"
-                  className={`choice-btn ${viewMode === 'multi' ? 'selected' : ''}`}
+                  disabled={mode === 'real'}
+                  className={`choice-btn ${viewMode === 'multi' && mode === 'practice' ? 'selected' : ''}`}
                   onClick={() => setViewMode('multi')}
+                  title={
+                    mode === 'real'
+                      ? '여러 문제씩 보기는 연습 모드에서 사용할 수 있습니다'
+                      : undefined
+                  }
                 >
                   <div className="choice-btn-title">여러 문제씩 보기</div>
                   <div className="choice-btn-desc">
-                    한 영역의 여러 문항 스크롤 + 좌측 OMR/문제선택 자유 이동
+                    한 영역의 여러 문항 스크롤 + 좌측 OMR/문제선택 자유 이동 (연습 전용)
                   </div>
                 </button>
                 <button
                   type="button"
-                  className={`choice-btn ${viewMode === 'single' ? 'selected' : ''}`}
+                  className={`choice-btn ${mode === 'real' || viewMode === 'single' ? 'selected' : ''}`}
                   onClick={() => setViewMode('single')}
                 >
                   <div className="choice-btn-title">한 문제씩 보기</div>

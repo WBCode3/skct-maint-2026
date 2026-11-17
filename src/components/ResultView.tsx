@@ -108,15 +108,29 @@ export const ResultView: React.FC<ResultViewProps> = ({
                   <th>미응답(패스)</th>
                   <th>정답률</th>
                   <th>소요 시간 / 제한 시간</th>
+                  <th>문항당 평균 (권장)</th>
                 </tr>
               </thead>
               <tbody>
                 {record.subjectResults.map((sr) => {
                   const meta = SUBJECT_MAP[sr.subject];
                   const acc = Math.round((sr.correct / Math.max(sr.total, 1)) * 100);
+                  const recSec = Math.round(meta.timeLimitSeconds / Math.max(meta.questionCount, 1));
+                  const avgAllSec = sr.total > 0 ? sr.timeSpentSeconds / sr.total : 0;
+                  const avgAnsweredSec =
+                    sr.answered > 0 ? sr.timeSpentSeconds / sr.answered : null;
+                  const paceColor =
+                    sr.timeSpentSeconds === 0
+                      ? '#64748b'
+                      : avgAllSec <= recSec
+                        ? '#15803d'
+                        : avgAllSec <= recSec * 1.25
+                          ? '#b45309'
+                          : '#dc2626';
+
                   return (
                     <tr key={sr.subject}>
-                      <td style={{ fontWeight: 700 }}>{meta.name}</td>
+                      <td style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{meta.name}</td>
                       <td className="tabular">{sr.total}</td>
                       <td className="tabular">{sr.answered}</td>
                       <td className="tabular" style={{ color: '#15803d', fontWeight: 700 }}>
@@ -129,12 +143,72 @@ export const ResultView: React.FC<ResultViewProps> = ({
                       <td className="tabular" style={{ fontWeight: 700 }}>
                         {acc}%
                       </td>
-                      <td className="tabular">
+                      <td className="tabular" style={{ whiteSpace: 'nowrap' }}>
                         {formatTime(sr.timeSpentSeconds)} / {meta.timeLimitSeconds / 60}분
+                      </td>
+                      <td className="tabular" style={{ whiteSpace: 'nowrap' }}>
+                        <span style={{ color: paceColor, fontWeight: 800 }}>
+                          {avgAllSec.toFixed(1)}초
+                        </span>{' '}
+                        <span style={{ fontSize: '12.5px', color: '#64748b' }}>
+                          (권장 {recSec}초)
+                        </span>
+                        {avgAnsweredSec !== null && sr.answered !== sr.total && (
+                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                            응답 문항 기준 {avgAnsweredSec.toFixed(1)}초
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );
                 })}
+                {record.subjectResults.length > 1 && (() => {
+                  const sumTotal = record.subjectResults.reduce((a, r) => a + r.total, 0);
+                  const sumAnswered = record.subjectResults.reduce((a, r) => a + r.answered, 0);
+                  const sumCorrect = record.subjectResults.reduce((a, r) => a + r.correct, 0);
+                  const sumWrong = record.subjectResults.reduce((a, r) => a + r.wrong, 0);
+                  const sumUnanswered = record.subjectResults.reduce((a, r) => a + r.unanswered, 0);
+                  const sumSpent = record.subjectResults.reduce((a, r) => a + r.timeSpentSeconds, 0);
+                  const sumLimit = record.subjectResults.reduce((a, r) => a + r.timeLimitSeconds, 0);
+                  const totalAcc = Math.round((sumCorrect / Math.max(sumTotal, 1)) * 100);
+                  const totalAvg = sumTotal > 0 ? sumSpent / sumTotal : 0;
+                  const totalRec = Math.round(sumLimit / Math.max(sumTotal, 1));
+                  const totalPaceColor =
+                    sumSpent === 0
+                      ? '#64748b'
+                      : totalAvg <= totalRec
+                        ? '#15803d'
+                        : totalAvg <= totalRec * 1.25
+                          ? '#b45309'
+                          : '#dc2626';
+
+                  return (
+                    <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                      <td style={{ whiteSpace: 'nowrap' }}>합계 / 평균</td>
+                      <td className="tabular">{sumTotal}</td>
+                      <td className="tabular">{sumAnswered}</td>
+                      <td className="tabular" style={{ color: '#15803d' }}>
+                        {sumCorrect}
+                      </td>
+                      <td className="tabular" style={{ color: '#dc2626' }}>
+                        {sumWrong}
+                      </td>
+                      <td className="tabular">{sumUnanswered}</td>
+                      <td className="tabular">{totalAcc}%</td>
+                      <td className="tabular" style={{ whiteSpace: 'nowrap' }}>
+                        {formatTime(sumSpent)} / {sumLimit / 60}분
+                      </td>
+                      <td className="tabular" style={{ whiteSpace: 'nowrap' }}>
+                        <span style={{ color: totalPaceColor, fontWeight: 800 }}>
+                          {totalAvg.toFixed(1)}초
+                        </span>{' '}
+                        <span style={{ fontSize: '12.5px', color: '#64748b', fontWeight: 600 }}>
+                          (권장 {totalRec}초)
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })()}
               </tbody>
             </table>
           </div>

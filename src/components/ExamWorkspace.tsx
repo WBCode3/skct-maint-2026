@@ -38,7 +38,9 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
   const currentSubjectId: SubjectId = subjects[subjectIdx];
   const currentMeta = SUBJECT_MAP[currentSubjectId];
 
-  const [viewMode, setViewMode] = useState<ViewMode>(config.viewMode);
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    config.mode === 'real' ? 'single' : config.viewMode,
+  );
   const [fontSize, setFontSize] = useState<number>(17);
   const [answers, setAnswers] = useState<Record<string, number | null>>({});
   const [bookmarks, setBookmarks] = useState<Record<string, boolean>>({});
@@ -48,6 +50,7 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
   const [questionIndex, setQuestionIndex] = useState<number>(0);
   const [maxReachedIndex, setMaxReachedIndex] = useState<number>(0);
   const [clearScratchSignal, setClearScratchSignal] = useState<number>(0);
+  const [questionElapsedSec, setQuestionElapsedSec] = useState<number>(0);
 
   // Timer state
   const [isReadyOverlay, setIsReadyOverlay] = useState<boolean>(config.mode === 'real');
@@ -170,6 +173,21 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
     [config.customTimeMultiplier, config.mode, elapsedPerSubject, finishExam, subjectIdx, subjects],
   );
 
+  // Prevent accidental browser refresh/tab close during exam
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
+  // Reset per-question elapsed timer when moving to another question
+  useEffect(() => {
+    setQuestionElapsedSec(0);
+  }, [currentQuestion?.id]);
+
   // Countdown / Elapsed timer tick
   useEffect(() => {
     if (isReadyOverlay || isPaused) return;
@@ -179,6 +197,7 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
         ...prev,
         [currentSubjectId]: (prev[currentSubjectId] ?? 0) + 1,
       }));
+      setQuestionElapsedSec((prev) => prev + 1);
 
       if (subjectTimeLimit > 0) {
         setSecondsLeft((prev) => {
@@ -287,6 +306,22 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
   const timeProgressPct =
     subjectTimeLimit > 0 ? Math.max(0, Math.min(100, (secondsLeft / subjectTimeLimit) * 100)) : 0;
 
+  const recSecPerQ = Math.round(
+    currentMeta.timeLimitSeconds / Math.max(currentMeta.questionCount, 1),
+  );
+  const cutoffSecPerQ =
+    currentSubjectId === 'verbal_expr'
+      ? 10
+      : currentSubjectId === 'verbal_comp'
+        ? 30
+        : 35;
+  const paceStatus =
+    questionElapsedSec > cutoffSecPerQ
+      ? 'over'
+      : questionElapsedSec > recSecPerQ
+        ? 'warn'
+        : 'ok';
+
   return (
     <div className="cbt-shell">
       {/* TOP BAR */}
@@ -368,22 +403,31 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
         </div>
 
         <div className="topbar-right">
-          <div className="segmented-toggle" title="문제 표시 방식 전환">
-            <button
-              type="button"
-              className={viewMode === 'single' ? 'active' : ''}
-              onClick={() => setViewMode('single')}
+          {config.mode === 'real' ? (
+            <div
+              className="mode-fixed-pill"
+              title="실전 모드는 실제 온라인 SKCT와 동일하게 한 문제씩으로 고정됩니다"
             >
-              한 문제씩
-            </button>
-            <button
-              type="button"
-              className={viewMode === 'multi' ? 'active' : ''}
-              onClick={() => setViewMode('multi')}
-            >
-              여러 문제씩
-            </button>
-          </div>
+              실전 · 한 문제씩 고정
+            </div>
+          ) : (
+            <div className="segmented-toggle" title="문제 표시 방식 전환">
+              <button
+                type="button"
+                className={viewMode === 'single' ? 'active' : ''}
+                onClick={() => setViewMode('single')}
+              >
+                한 문제씩
+              </button>
+              <button
+                type="button"
+                className={viewMode === 'multi' ? 'active' : ''}
+                onClick={() => setViewMode('multi')}
+              >
+                여러 문제씩
+              </button>
+            </div>
+          )}
 
           <button
             type="button"
@@ -437,6 +481,14 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
             </div>
 
             <div className="q-panel-controls">
+              {config.mode === 'practice' && (
+                <span
+                  className={`q-pace-pill tabular ${paceStatus}`}
+                  title={`현재 문항 경과 시간 (권장 평균 ${recSecPerQ}초 · 손절 기준 ${cutoffSecPerQ}초)`}
+                >
+                  문항 경과 {String(questionElapsedSec).padStart(2, '0')}초 · 권장 {recSecPerQ}초
+                </span>
+              )}
               <span style={{ fontSize: '13px', color: '#64748b' }}>글자 크기</span>
               <button
                 type="button"
