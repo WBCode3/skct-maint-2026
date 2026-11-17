@@ -54,6 +54,8 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
 
   // Timer state
   const [isReadyOverlay, setIsReadyOverlay] = useState<boolean>(config.mode === 'real');
+  const [readySecondsLeft, setReadySecondsLeft] = useState<number>(60);
+  const [lastAdvanceAuto, setLastAdvanceAuto] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [subjectTimeLimit, setSubjectTimeLimit] = useState<number>(
     config.customTimeMultiplier === 0 ? 0 : currentMeta.timeLimitSeconds,
@@ -67,6 +69,8 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
     creative_math: 0,
     data_interp: 0,
   });
+  const elapsedRef = useRef<Record<SubjectId, number>>(elapsedPerSubject);
+  elapsedRef.current = elapsedPerSubject;
 
   // Modals
   const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
@@ -146,6 +150,10 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
 
   const advanceToNextSubject = useCallback(
     (autoTriggered: boolean) => {
+      setSkipConfirmTarget(null);
+      setShowSubmitConfirm(false);
+      setShowHelpModal(false);
+
       if (subjectIdx + 1 < subjects.length) {
         const nextIdx = subjectIdx + 1;
         const nextMeta = SUBJECT_MAP[subjects[nextIdx]];
@@ -160,17 +168,19 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
           config.customTimeMultiplier === 0 ? 0 : nextMeta.timeLimitSeconds,
         );
         setIsPaused(false);
-        if (config.mode === 'real' || autoTriggered) {
-          setIsReadyOverlay(config.mode === 'real');
+        if (config.mode === 'real') {
+          setLastAdvanceAuto(autoTriggered);
+          setReadySecondsLeft(60);
+          setIsReadyOverlay(true);
         }
         if (scrollAreaRef.current) {
           scrollAreaRef.current.scrollTop = 0;
         }
       } else {
-        finishExam(elapsedPerSubject);
+        finishExam(elapsedRef.current);
       }
     },
-    [config.customTimeMultiplier, config.mode, elapsedPerSubject, finishExam, subjectIdx, subjects],
+    [config.customTimeMultiplier, config.mode, finishExam, subjectIdx, subjects],
   );
 
   // Prevent accidental browser refresh/tab close during exam
@@ -188,22 +198,42 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
     setQuestionElapsedSec(0);
   }, [currentQuestion?.id]);
 
+  // 1-minute (60s) ready overlay countdown in Real Mode -> auto-starts next section
+  useEffect(() => {
+    if (!isReadyOverlay || config.mode !== 'real') return;
+
+    const readyTimer = window.setInterval(() => {
+      setReadySecondsLeft((prev) => {
+        if (prev <= 1) {
+          window.clearInterval(readyTimer);
+          setIsReadyOverlay(false);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(readyTimer);
+  }, [isReadyOverlay, config.mode]);
+
   // Countdown / Elapsed timer tick
   useEffect(() => {
     if (isReadyOverlay || isPaused) return;
 
     const timer = window.setInterval(() => {
-      setElapsedPerSubject((prev) => ({
-        ...prev,
-        [currentSubjectId]: (prev[currentSubjectId] ?? 0) + 1,
-      }));
+      const nextElapsed = (elapsedRef.current[currentSubjectId] ?? 0) + 1;
+      elapsedRef.current = {
+        ...elapsedRef.current,
+        [currentSubjectId]: nextElapsed,
+      };
+      setElapsedPerSubject(elapsedRef.current);
       setQuestionElapsedSec((prev) => prev + 1);
 
       if (subjectTimeLimit > 0) {
         setSecondsLeft((prev) => {
           if (prev <= 1) {
             window.clearInterval(timer);
-            // Auto advance when timer expires
+            // Auto advance immediately when timer expires
             setTimeout(() => advanceToNextSubject(true), 0);
             return 0;
           }
@@ -628,18 +658,52 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
         </aside>
       </div>
 
-      {/* SECTION START READY OVERLAY (Real Mode) */}
+      {/* SECTION START READY OVERLAY (Real Mode: 1-minute preparation countdown) */}
       {isReadyOverlay && (
         <div className="modal-backdrop">
-          <div className="modal-card">
-            <div style={{ fontSize: '12px', fontWeight: 800, color: '#ea002c', marginBottom: '4px' }}>
-              제 {subjectIdx + 1} 영역 안내
+          <div className="modal-card" style={{ maxWidth: '520px' }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#ea002c', marginBottom: '4px' }}>
+              제 {subjectIdx + 1} 영역 안내 {lastAdvanceAuto ? '· 이전 영역 시간 종료' : ''}
             </div>
             <h3 className="modal-title">
               {currentMeta.name} ({currentMeta.questionCount}문항 /{' '}
               {currentMeta.timeLimitSeconds / 60}분)
             </h3>
             <div className="modal-body">
+              <div
+                style={{
+                  background: '#fff2f4',
+                  border: '1px solid #f5b4c0',
+                  borderRadius: '6px',
+                  padding: '12px 14px',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a202c' }}>
+                    {subjectIdx === 0 ? '시험 시작 전 준비 시간' : '다음 영역 준비 시간 (자동 시작)'}
+                  </div>
+                  <div style={{ fontSize: '12.5px', color: '#4a5568', marginTop: '2px' }}>
+                    1분 종료 후 {currentMeta.name} 타이머가 자동으로 시작됩니다.
+                  </div>
+                </div>
+                <div
+                  className="tabular"
+                  style={{
+                    fontSize: '24px',
+                    fontWeight: 800,
+                    color: '#ea002c',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {formatMMSS(readySecondsLeft)}
+                </div>
+              </div>
+
               <p style={{ margin: '0 0 8px 0' }}>{currentMeta.description}</p>
               <div
                 style={{
@@ -647,7 +711,7 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
                   border: '1px solid #d6dce3',
                   borderRadius: '4px',
                   padding: '10px 12px',
-                  fontSize: '12.5px',
+                  fontSize: '13px',
                 }}
               >
                 <strong>전략 포인트:</strong> {currentMeta.tips}
@@ -664,7 +728,7 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
                 className="btn btn-primary"
                 onClick={() => setIsReadyOverlay(false)}
               >
-                {currentMeta.name} 시작하기
+                준비 완료 · {currentMeta.name} 바로 시작하기
               </button>
             </div>
           </div>
