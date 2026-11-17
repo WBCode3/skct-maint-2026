@@ -283,13 +283,13 @@ export const Lobby: React.FC<LobbyProps> = ({
           </h2>
 
           <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
-            <table className="history-table">
+            <table className="history-table strategy-table">
               <thead>
                 <tr>
                   <th>영역</th>
                   <th>문항 수</th>
                   <th>제한 시간</th>
-                  <th>문항당 평균 시간</th>
+                  <th>문항당 평균</th>
                   <th>권장 목표 / 손절 기준</th>
                   <th>영역별 실전 공략 (가이드북 후기)</th>
                 </tr>
@@ -299,58 +299,63 @@ export const Lobby: React.FC<LobbyProps> = ({
                   const secPerQ = Math.round(s.timeLimitSeconds / s.questionCount);
                   const strategyMap: Record<
                     SubjectId,
-                    { target: string; tip: string }
+                    { target: string; cutoff: string; tip: string }
                   > = {
                     verbal_expr: {
-                      target: '4~5초 내 즉각 체크 (10초 초과 시 패스)',
-                      tip: '고민할 시간이 없으므로 보자마자 직관적으로 체크. 시간 배분 실수 시 뒷부분 10문항 이상 못 풀고 종료될 수 있음.',
+                      target: '4~5초 내 즉각 체크',
+                      cutoff: '손절: 10초 초과 시 패스',
+                      tip: '고민할 시간이 없으므로 보자마자 직관적으로 체크하세요. 시간 배분 실수 시 뒷부분 10문항 이상 못 풀고 종료될 수 있습니다.',
                     },
                     verbal_comp: {
-                      target: '18~20초 내 컷 (30초 초과 시 패스)',
-                      tip: '다양한 주제의 짧은 지문 출제. 발문과 선지 키워드를 먼저 보고 지문 근거 문장과 1:1 대조.',
+                      target: '18~20초 내 컷',
+                      cutoff: '손절: 30초 초과 시 패스',
+                      tip: '다양한 주제의 짧은 지문이 출제됩니다. 발문과 선지 키워드를 먼저 보고 지문 근거 문장과 1:1로 대조하세요.',
                     },
                     creative_math: {
-                      target: '25~30초 내 컷 (식 안 세워지면 즉시 패스)',
-                      tip: '거속시·소금물·일률·나이·원가정가·경우의 수 등 기초 수학 중심. 암산 가능한 건 암산하고 식 정리는 그림판 활용.',
+                      target: '25~30초 내 컷',
+                      cutoff: '손절: 식 안 세워지면 즉시 패스',
+                      tip: '거속시·소금물·일률·나이·원가정가·경우의 수 등 기초 수학 중심입니다. 암산 가능한 건 암산하고 식 정리는 그림판을 활용하세요.',
                     },
                     data_interp: {
-                      target: '25~30초 내 컷 (계산 지저분하면 패스)',
-                      tip: '화면 계산기 활용 시 난도는 평이하나, 평균·비율 계산 중 항목 하나를 빼먹는 실수를 가장 조심해야 함.',
+                      target: '25~30초 내 컷',
+                      cutoff: '손절: 계산 지저분하면 패스',
+                      tip: '화면 계산기 활용 시 난도는 평이하나, 평균·비율 계산 중 항목 하나를 빼먹는 실수를 가장 조심해야 합니다.',
                     },
                   };
                   const st = strategyMap[s.id];
                   return (
                     <tr key={s.id}>
-                      <td style={{ fontWeight: 800 }}>{s.name}</td>
-                      <td className="tabular">{s.questionCount}문항</td>
-                      <td className="tabular">
+                      <td className="nowrap-col" style={{ fontWeight: 800 }}>
+                        {s.name}
+                      </td>
+                      <td className="tabular nowrap-col">{s.questionCount}문항</td>
+                      <td className="tabular nowrap-col">
                         {s.timeLimitSeconds / 60}분 ({s.timeLimitSeconds}초)
                       </td>
                       <td
-                        className="tabular"
+                        className="tabular nowrap-col"
                         style={{ color: '#ea002c', fontWeight: 800 }}
                       >
                         문항당 {secPerQ}초
                       </td>
-                      <td style={{ fontWeight: 600, color: '#1a202c' }}>
-                        {st.target}
+                      <td className="target-col">
+                        <div className="target-main">{st.target}</div>
+                        <div className="target-cut">{st.cutoff}</div>
                       </td>
-                      <td style={{ color: '#4a5568', lineHeight: 1.55 }}>
-                        {st.tip}
-                      </td>
+                      <td className="strategy-tip-col">{st.tip}</td>
                     </tr>
                   );
                 })}
                 <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
-                  <td>합계 / 평균</td>
-                  <td className="tabular">{TOTAL_QUESTIONS}문항</td>
-                  <td className="tabular">
+                  <td className="nowrap-col">합계 / 평균</td>
+                  <td className="tabular nowrap-col">{TOTAL_QUESTIONS}문항</td>
+                  <td className="tabular nowrap-col">
                     {TOTAL_TIME_SECONDS / 60}분 ({TOTAL_TIME_SECONDS.toLocaleString()}초)
                   </td>
-                  <td className="tabular" style={{ color: '#ea002c' }}>
+                  <td className="tabular nowrap-col" style={{ color: '#ea002c' }}>
                     평균 {Math.round(TOTAL_TIME_SECONDS / TOTAL_QUESTIONS)}초
                   </td>
-                  <td colSpan={2} style={{ color: '#4a5568', fontWeight: 600 }}>
+                  <td colSpan={2} style={{ color: '#4a5568', fontWeight: 600, lineHeight: 1.6 }}>
                     ※ 합격 후기 기준 100문항 중 90~95문항만 확실히 풀고 모르는 문제는 비워둬도 충분한 합격권입니다.
                   </td>
                 </tr>
@@ -358,63 +363,30 @@ export const Lobby: React.FC<LobbyProps> = ({
             </table>
           </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: '12px',
-            }}
-          >
-            <div
-              style={{
-                padding: '13px 15px',
-                background: '#f8fafc',
-                border: '1px solid #d6dce3',
-                borderRadius: '6px',
-                fontSize: '13.5px',
-                lineHeight: 1.65,
-              }}
-            >
-              <div style={{ fontWeight: 800, color: '#1a202c', marginBottom: '6px' }}>
+          <div className="guide-tip-grid">
+            <div className="guide-tip-card">
+              <div className="guide-tip-title">
                 1. 찍기 금지 · 빠른 패스 전략 (오답 감점 대비)
               </div>
-              <div style={{ color: '#4a5568' }}>
+              <div>
                 오답 감점 가능성이 있으므로 모르는 문제나 계산이 복잡하고 지저분해 보이는 문제는 찍지 말고 바로 넘기세요. 풀 수 있는 문항의 정답률을 높이는 것이 핵심입니다.
               </div>
             </div>
 
-            <div
-              style={{
-                padding: '13px 15px',
-                background: '#f8fafc',
-                border: '1px solid #d6dce3',
-                borderRadius: '6px',
-                fontSize: '13.5px',
-                lineHeight: 1.65,
-              }}
-            >
-              <div style={{ fontWeight: 800, color: '#1a202c', marginBottom: '6px' }}>
+            <div className="guide-tip-card">
+              <div className="guide-tip-title">
                 2. 종이 필기 불가 → 눈·그림판·계산기 분업
               </div>
-              <div style={{ color: '#4a5568' }}>
+              <div>
                 실전에서는 종이·펜을 쓸 수 없습니다. 단순 연산은 계산기보다 암산이 빠르고, 방정식·비례식은 <strong>그림판</strong>, 퍼센트·평균은 <strong>계산기(숫자 키패드)</strong>로 푸는 연습을 해두세요.
               </div>
             </div>
 
-            <div
-              style={{
-                padding: '13px 15px',
-                background: '#f8fafc',
-                border: '1px solid #d6dce3',
-                borderRadius: '6px',
-                fontSize: '13.5px',
-                lineHeight: 1.65,
-              }}
-            >
-              <div style={{ fontWeight: 800, color: '#1a202c', marginBottom: '6px' }}>
-                3. 대졸 기본서보다 평이 · 사전 프로그램 &amp; 인성 유의
+            <div className="guide-tip-card">
+              <div className="guide-tip-title">
+                3. 대졸 기본서보다 평이 · 사전 테스트 &amp; 인성 유의
               </div>
-              <div style={{ color: '#4a5568' }}>
+              <div>
                 생산직 SKCT는 대졸 통합서보다 훨씬 쉬우므로 <strong>빈출 수리 테마</strong> 속도를 높이는 게 유리합니다. 시험 전 SKCT 테스트 앱 구동 확인과 2교시 인성검사의 <strong>일관성 유지</strong>도 반드시 챙기세요.
               </div>
             </div>
