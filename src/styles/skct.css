@@ -1148,7 +1148,7 @@ select {
 }
 
 .lobby-header-inner {
-  max-width: 1160px;
+  max-width: 1440px;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -1157,9 +1157,9 @@ select {
 }
 
 .lobby-container {
-  max-width: 1160px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 24px 20px 48px;
+  padding: 24px 24px 48px;
 }
 
 .lobby-summary-strip {
@@ -1490,9 +1490,9 @@ select {
 }
 
 .result-container {
-  max-width: 1120px;
+  max-width: 1360px;
   margin: 0 auto;
-  padding: 24px 20px 56px;
+  padding: 24px 24px 56px;
 }
 
 .result-kpi-grid {
