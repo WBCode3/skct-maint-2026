@@ -215,14 +215,24 @@ export const Calculator: React.FC = () => {
           +
         </button>
 
+        <button type="button" className="calc-btn" onClick={() => appendToken('1')}>
+          1
+        </button>
+        <button type="button" className="calc-btn" onClick={() => appendToken('2')}>
+          2
+        </button>
+        <button type="button" className="calc-btn" onClick={() => appendToken('3')}>
+          3
+        </button>
+        <button type="button" className="calc-btn eq row-span2" onClick={handleEquals}>
+          =
+        </button>
+
         <button type="button" className="calc-btn span2" onClick={() => appendToken('0')}>
           0
         </button>
         <button type="button" className="calc-btn" onClick={() => appendToken('.')}>
           .
-        </button>
-        <button type="button" className="calc-btn eq" onClick={handleEquals}>
-          =
         </button>
       </div>
     </div>
