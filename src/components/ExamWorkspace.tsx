@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ThemeMode } from '../App';
 import { SUBJECT_MAP } from '../data/subjects';
 import {
   ExamAttemptRecord,
@@ -16,6 +17,8 @@ import { ScratchPad } from './ScratchPad';
 interface ExamWorkspaceProps {
   exam: MockExam;
   config: ExamConfig;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
   onComplete: (record: ExamAttemptRecord) => void;
   onExitToLobby: () => void;
 }
@@ -30,6 +33,8 @@ function formatMMSS(sec: number): string {
 export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
   exam,
   config,
+  theme,
+  onToggleTheme,
   onComplete,
   onExitToLobby,
 }) => {
@@ -462,6 +467,15 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
           <button
             type="button"
             className="btn btn-outline btn-sm"
+            onClick={onToggleTheme}
+            title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+          >
+            {theme === 'dark' ? '☀️ 라이트' : '🌙 다크'}
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
             onClick={() => setShowHelpModal(true)}
             title="시험 안내"
           >
@@ -503,7 +517,7 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
             <div>
               <span className="q-panel-title">
                 <span>문제</span>
-                <span style={{ color: '#ea002c' }}>{currentMeta.name}</span>
+                <span style={{ color: 'var(--sk-red)' }}>{currentMeta.name}</span>
                 <span className="q-panel-sub tabular">
                   ({currentMeta.questionCount}문항 · 제한 {currentMeta.timeLimitSeconds / 60}분)
                 </span>
@@ -519,7 +533,7 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
                   문항 경과 {String(questionElapsedSec).padStart(2, '0')}초 · 권장 {recSecPerQ}초
                 </span>
               )}
-              <span style={{ fontSize: '13px', color: '#64748b' }}>글자 크기</span>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>글자 크기</span>
               <button
                 type="button"
                 className="btn btn-outline btn-sm"
@@ -630,7 +644,7 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
               </>
             ) : (
               <>
-                <span style={{ fontSize: '12.5px', color: '#718096' }}>
+                <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
                   좌측 OMR 답안지 번호를 클릭하면 해당 문항으로 바로 이동합니다.
                 </span>
                 <button
@@ -653,7 +667,7 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
 
         {/* RIGHT: Notepad/Drawing + Calculator */}
         <aside className="tools-panel">
-          <ScratchPad clearSignal={clearScratchSignal} />
+          <ScratchPad clearSignal={clearScratchSignal} theme={theme} />
           <Calculator />
         </aside>
       </div>
@@ -662,7 +676,7 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
       {isReadyOverlay && (
         <div className="modal-backdrop">
           <div className="modal-card" style={{ maxWidth: '520px' }}>
-            <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#ea002c', marginBottom: '4px' }}>
+            <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--sk-red)', marginBottom: '4px' }}>
               제 {subjectIdx + 1} 영역 안내 {lastAdvanceAuto ? '· 이전 영역 시간 종료' : ''}
             </div>
             <h3 className="modal-title">
@@ -672,8 +686,8 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
             <div className="modal-body">
               <div
                 style={{
-                  background: '#fff2f4',
-                  border: '1px solid #f5b4c0',
+                  background: 'var(--sk-red-soft)',
+                  border: '1px solid var(--sk-red-border)',
                   borderRadius: '6px',
                   padding: '12px 14px',
                   marginBottom: '12px',
@@ -684,10 +698,10 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a202c' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>
                     {subjectIdx === 0 ? '시험 시작 전 준비 시간' : '다음 영역 준비 시간 (자동 시작)'}
                   </div>
-                  <div style={{ fontSize: '12.5px', color: '#4a5568', marginTop: '2px' }}>
+                  <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>
                     1분 종료 후 {currentMeta.name} 타이머가 자동으로 시작됩니다.
                   </div>
                 </div>
@@ -696,7 +710,7 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
                   style={{
                     fontSize: '24px',
                     fontWeight: 800,
-                    color: '#ea002c',
+                    color: 'var(--sk-red)',
                     whiteSpace: 'nowrap',
                   }}
                 >
@@ -707,8 +721,8 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
               <p style={{ margin: '0 0 8px 0' }}>{currentMeta.description}</p>
               <div
                 style={{
-                  background: '#f7f8fa',
-                  border: '1px solid #d6dce3',
+                  background: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-color)',
                   borderRadius: '4px',
                   padding: '10px 12px',
                   fontSize: '13px',
@@ -717,7 +731,7 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
                 <strong>전략 포인트:</strong> {currentMeta.tips}
               </div>
               {config.mode === 'real' && viewMode === 'single' && !config.allowBackInRealSingle && (
-                <p style={{ margin: '10px 0 0 0', color: '#ea002c', fontSize: '12.5px', fontWeight: 600 }}>
+                <p style={{ margin: '10px 0 0 0', color: 'var(--sk-red)', fontSize: '12.5px', fontWeight: 600 }}>
                   ※ 실전 한 문제씩 규칙: 다음 문항으로 이동하면 이전 문항으로 되돌아갈 수 없습니다.
                 </p>
               )}
@@ -746,7 +760,7 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
                 건너뛰고 다음 문항으로 이동하시겠습니까?
               </p>
               {!config.allowBackInRealSingle && (
-                <p style={{ margin: '0 0 10px 0', color: '#ea002c', fontSize: '12.5px' }}>
+                <p style={{ margin: '0 0 10px 0', color: 'var(--sk-red)', fontSize: '12.5px' }}>
                   이동 후에는 이전 문항으로 돌아갈 수 없습니다. (모르는 문제는 감점 방지를 위해 비워두고 넘기는 것이 유리합니다.)
                 </p>
               )}
@@ -803,7 +817,7 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
                 / {subjectQuestions.length}문항
               </strong>
               {subjectIdx + 1 < subjects.length && config.mode === 'real' && (
-                <p style={{ margin: '8px 0 0 0', fontSize: '12.5px', color: '#ea002c' }}>
+                <p style={{ margin: '8px 0 0 0', fontSize: '12.5px', color: 'var(--sk-red)' }}>
                   다음 영역({SUBJECT_MAP[subjects[subjectIdx + 1]].name})으로 넘어가면 현재 영역으로 돌아올 수 없습니다.
                 </p>
               )}

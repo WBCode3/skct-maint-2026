@@ -6,7 +6,7 @@ interface DataVisualProps {
   chart?: ChartData;
 }
 
-const CHART_COLORS = ['#EA002C', '#334155', '#F47725', '#64748B', '#94A3B8'];
+const CHART_COLORS = ['var(--sk-red)', 'var(--chart-series-2)', 'var(--sk-orange)', '#64748b', '#94a3b8'];
 
 const BarChartSvg: React.FC<{ chart: ChartData }> = ({ chart }) => {
   const width = 560;
@@ -37,8 +37,8 @@ const BarChartSvg: React.FC<{ chart: ChartData }> = ({ chart }) => {
         const tickVal = Math.round(maxVal * ratio * 10) / 10;
         return (
           <g key={idx}>
-            <line x1={pad.left} y1={y} x2={width - pad.right} y2={y} stroke="#e2e8f0" strokeWidth={1} />
-            <text x={pad.left - 8} y={y + 4} textAnchor="end" fontSize="11" fill="#64748b">
+            <line x1={pad.left} y1={y} x2={width - pad.right} y2={y} stroke="var(--chart-grid)" strokeWidth={1} />
+            <text x={pad.left - 8} y={y + 4} textAnchor="end" fontSize="11" fill="var(--text-muted)">
               {tickVal.toLocaleString()}
             </text>
           </g>
@@ -46,8 +46,8 @@ const BarChartSvg: React.FC<{ chart: ChartData }> = ({ chart }) => {
       })}
 
       {/* Axes */}
-      <line x1={pad.left} y1={pad.top} x2={pad.left} y2={pad.top + plotH} stroke="#94a3b8" strokeWidth={1.2} />
-      <line x1={pad.left} y1={pad.top + plotH} x2={width - pad.right} y2={pad.top + plotH} stroke="#94a3b8" strokeWidth={1.2} />
+      <line x1={pad.left} y1={pad.top} x2={pad.left} y2={pad.top + plotH} stroke="var(--chart-axis)" strokeWidth={1.2} />
+      <line x1={pad.left} y1={pad.top + plotH} x2={width - pad.right} y2={pad.top + plotH} stroke="var(--chart-axis)" strokeWidth={1.2} />
 
       {/* Bars */}
       {chart.labels.map((label, gIdx) => {
@@ -69,7 +69,7 @@ const BarChartSvg: React.FC<{ chart: ChartData }> = ({ chart }) => {
                     textAnchor="middle"
                     fontSize="10.5"
                     fontWeight="600"
-                    fill="#1e293b"
+                    fill="var(--chart-val)"
                   >
                     {val}
                   </text>
@@ -82,7 +82,7 @@ const BarChartSvg: React.FC<{ chart: ChartData }> = ({ chart }) => {
               textAnchor="middle"
               fontSize="11.5"
               fontWeight="600"
-              fill="#334155"
+              fill="var(--chart-label)"
             >
               {label}
             </text>
@@ -124,16 +124,16 @@ const LineChartSvg: React.FC<{ chart: ChartData }> = ({ chart }) => {
         const tickVal = Math.round((minVal + span * ratio) * 10) / 10;
         return (
           <g key={idx}>
-            <line x1={pad.left} y1={y} x2={width - pad.right} y2={y} stroke="#e2e8f0" strokeWidth={1} />
-            <text x={pad.left - 8} y={y + 4} textAnchor="end" fontSize="11" fill="#64748b">
+            <line x1={pad.left} y1={y} x2={width - pad.right} y2={y} stroke="var(--chart-grid)" strokeWidth={1} />
+            <text x={pad.left - 8} y={y + 4} textAnchor="end" fontSize="11" fill="var(--text-muted)">
               {tickVal.toLocaleString()}
             </text>
           </g>
         );
       })}
 
-      <line x1={pad.left} y1={pad.top} x2={pad.left} y2={pad.top + plotH} stroke="#94a3b8" strokeWidth={1.2} />
-      <line x1={pad.left} y1={pad.top + plotH} x2={width - pad.right} y2={pad.top + plotH} stroke="#94a3b8" strokeWidth={1.2} />
+      <line x1={pad.left} y1={pad.top} x2={pad.left} y2={pad.top + plotH} stroke="var(--chart-axis)" strokeWidth={1.2} />
+      <line x1={pad.left} y1={pad.top + plotH} x2={width - pad.right} y2={pad.top + plotH} stroke="var(--chart-axis)" strokeWidth={1.2} />
 
       {chart.labels.map((label, idx) => (
         <text
@@ -143,7 +143,7 @@ const LineChartSvg: React.FC<{ chart: ChartData }> = ({ chart }) => {
           textAnchor="middle"
           fontSize="11.5"
           fontWeight="600"
-          fill="#334155"
+          fill="var(--chart-label)"
         >
           {label}
         </text>
@@ -160,7 +160,7 @@ const LineChartSvg: React.FC<{ chart: ChartData }> = ({ chart }) => {
               const cy = getY(v);
               return (
                 <g key={i}>
-                  <circle cx={cx} cy={cy} r={4} fill="#ffffff" stroke={color} strokeWidth={2} />
+                  <circle cx={cx} cy={cy} r={4} fill="var(--bg-surface)" stroke={color} strokeWidth={2} />
                   <text
                     x={cx}
                     y={cy - 9}
@@ -219,7 +219,7 @@ const PieChartSvg: React.FC<{ chart: ChartData }> = ({ chart }) => {
       <svg viewBox="0 0 210 210" style={{ width: '195px', height: '195px', flexShrink: 0 }}>
         {slices.map((sl, i) => (
           <g key={i}>
-            <path d={sl.d} fill={sl.color} stroke="#ffffff" strokeWidth={2} />
+            <path d={sl.d} fill={sl.color} stroke="var(--bg-surface)" strokeWidth={2} />
             {sl.pct >= 8 && (
               <text
                 x={sl.lx}

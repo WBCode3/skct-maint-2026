@@ -6,6 +6,9 @@ import { MOCK_EXAMS } from './data';
 import { ExamAttemptRecord, ExamConfig } from './types/exam';
 
 const STORAGE_KEY = 'skct_maintenance_history_v1';
+const THEME_STORAGE_KEY = 'skct_theme_v1';
+
+export type ThemeMode = 'light' | 'dark';
 
 type ScreenState =
   | { view: 'lobby' }
@@ -14,6 +17,26 @@ type ScreenState =
 
 export const App: React.FC = () => {
   const [screen, setScreen] = useState<ScreenState>({ view: 'lobby' });
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    try {
+      const saved = localStorage.getItem(THEME_STORAGE_KEY);
+      return saved === 'dark' ? 'dark' : 'light';
+    } catch {
+      return 'light';
+    }
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      // Ignore
+    }
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+
   const [history, setHistory] = useState<ExamAttemptRecord[]>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -57,6 +80,8 @@ export const App: React.FC = () => {
       <ExamWorkspace
         exam={exam}
         config={screen.config}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onComplete={handleCompleteExam}
         onExitToLobby={() => setScreen({ view: 'lobby' })}
       />
@@ -69,6 +94,8 @@ export const App: React.FC = () => {
       <ResultView
         record={screen.record}
         exam={exam}
+        theme={theme}
+        onToggleTheme={toggleTheme}
         onBackToLobby={() => setScreen({ view: 'lobby' })}
       />
     );
@@ -78,6 +105,8 @@ export const App: React.FC = () => {
     <Lobby
       exams={MOCK_EXAMS}
       history={history}
+      theme={theme}
+      onToggleTheme={toggleTheme}
       onStartExam={handleStartExam}
       onViewHistoryResult={(record) => setScreen({ view: 'result', record })}
       onClearHistory={handleClearHistory}

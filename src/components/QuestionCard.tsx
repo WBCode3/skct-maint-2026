@@ -49,8 +49,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             onClick={onToggleBookmark}
             title="다시 볼 문제 표시"
             style={{
-              color: bookmarked ? '#F47725' : '#718096',
-              borderColor: bookmarked ? '#F47725' : undefined,
+              color: bookmarked ? 'var(--sk-orange)' : 'var(--text-muted)',
+              borderColor: bookmarked ? 'var(--sk-orange)' : undefined,
             }}
           >
             {bookmarked ? '★ 표시됨' : '☆ 표시'}
@@ -109,7 +109,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       {mode === 'practice' && (
         <>
           <div className="q-practice-bar">
-            <span style={{ fontSize: '13px', color: '#64748b' }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
               선택한 답안을 다시 클릭하면 선택 해제(패스)됩니다.
             </span>
             <button
@@ -122,13 +122,13 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           </div>
           {showInstantAnswer && (
             <div className="q-explanation-box">
-              <div style={{ fontWeight: 700, marginBottom: '4px', color: '#1a202c' }}>
+              <div style={{ fontWeight: 700, marginBottom: '4px', color: 'var(--text-primary)' }}>
                 정답: {question.answer + 1}번
                 {selectedOption !== null && (
                   <span
                     style={{
                       marginLeft: '8px',
-                      color: selectedOption === question.answer ? '#15803d' : '#dc2626',
+                      color: selectedOption === question.answer ? 'var(--success)' : 'var(--danger)',
                     }}
                   >
                     ({selectedOption === question.answer ? '정답입니다' : `선택: ${selectedOption + 1}번`})

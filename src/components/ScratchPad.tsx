@@ -2,13 +2,20 @@ import React, { useEffect, useRef, useState } from 'react';
 
 interface ScratchPadProps {
   clearSignal: number; // Increments whenever parent requests auto-clear
+  theme: 'light' | 'dark';
 }
 
-export const ScratchPad: React.FC<ScratchPadProps> = ({ clearSignal }) => {
+export const ScratchPad: React.FC<ScratchPadProps> = ({ clearSignal, theme }) => {
   const [activeTab, setActiveTab] = useState<'memo' | 'draw'>('memo');
   const [memoText, setMemoText] = useState<string>('');
-  const [penColor, setPenColor] = useState<'#1a202c' | '#ea002c' | '#ffffff'>('#1a202c');
+  const [penType, setPenType] = useState<'primary' | 'red' | 'eraser'>('primary');
   const [penSize, setPenSize] = useState<number>(2);
+
+  const canvasBg = theme === 'dark' ? '#131820' : '#ffffff';
+  const primaryPenColor = theme === 'dark' ? '#e6edf6' : '#1a202c';
+  const redPenColor = theme === 'dark' ? '#ff4764' : '#ea002c';
+  const activeStrokeColor =
+    penType === 'eraser' ? canvasBg : penType === 'red' ? redPenColor : primaryPenColor;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -39,7 +46,7 @@ export const ScratchPad: React.FC<ScratchPadProps> = ({ clearSignal }) => {
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.scale(dpr, dpr);
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = canvasBg;
         ctx.fillRect(0, 0, rect.width, rect.height);
         if (savedImageRef.current) {
           const img = new Image();
@@ -73,9 +80,16 @@ export const ScratchPad: React.FC<ScratchPadProps> = ({ clearSignal }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const rect = container.getBoundingClientRect();
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = canvasBg;
     ctx.fillRect(0, 0, rect.width, rect.height);
   };
+
+  useEffect(() => {
+    // Repaint empty canvas background cleanly when theme toggles
+    if (!savedImageRef.current && activeTab === 'draw') {
+      clearCanvas();
+    }
+  }, [theme]);
 
   const handleClearAll = () => {
     if (activeTab === 'memo') {
@@ -118,8 +132,8 @@ export const ScratchPad: React.FC<ScratchPadProps> = ({ clearSignal }) => {
     ctx.beginPath();
     ctx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
     ctx.lineTo(current.x, current.y);
-    ctx.strokeStyle = penColor;
-    ctx.lineWidth = penColor === '#ffffff' ? 14 : penSize;
+    ctx.strokeStyle = activeStrokeColor;
+    ctx.lineWidth = penType === 'eraser' ? 14 : penSize;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.stroke();
@@ -164,34 +178,37 @@ export const ScratchPad: React.FC<ScratchPadProps> = ({ clearSignal }) => {
           <div className="pen-controls">
             <button
               type="button"
-              className={`pen-color-dot ${penColor === '#1a202c' ? 'active' : ''}`}
-              style={{ background: '#1a202c' }}
-              title="검정 펜"
+              className={`pen-color-dot ${penType === 'primary' ? 'active' : ''}`}
+              style={{
+                background: primaryPenColor,
+                borderColor: penType === 'primary' ? 'var(--sk-orange)' : 'var(--border-strong)',
+              }}
+              title="기본 펜"
               onClick={() => {
-                setPenColor('#1a202c');
+                setPenType('primary');
                 setPenSize(2);
               }}
             />
             <button
               type="button"
-              className={`pen-color-dot ${penColor === '#ea002c' ? 'active' : ''}`}
-              style={{ background: '#ea002c' }}
+              className={`pen-color-dot ${penType === 'red' ? 'active' : ''}`}
+              style={{ background: redPenColor }}
               title="SK 빨강 펜"
               onClick={() => {
-                setPenColor('#ea002c');
+                setPenType('red');
                 setPenSize(2);
               }}
             />
             <button
               type="button"
-              className={`btn btn-sm ${penColor === '#ffffff' ? 'btn-slate' : 'btn-outline'}`}
-              onClick={() => setPenColor('#ffffff')}
+              className={`btn btn-sm ${penType === 'eraser' ? 'btn-slate' : 'btn-outline'}`}
+              onClick={() => setPenType('eraser')}
             >
               지우개
             </button>
           </div>
         ) : (
-          <span style={{ fontSize: '11.5px', color: '#718096' }}>간단한 식 · 메모 작성</span>
+          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>간단한 식 · 메모 작성</span>
         )}
         <button type="button" className="btn btn-slate btn-sm" onClick={handleClearAll}>
           전체 지우기

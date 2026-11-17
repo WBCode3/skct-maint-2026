@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import type { ThemeMode } from '../App';
 import { SUBJECT_MAP } from '../data/subjects';
 import { ExamAttemptRecord, MockExam, SubjectId } from '../types/exam';
 import { DataVisual } from './DataVisual';
@@ -6,6 +7,8 @@ import { DataVisual } from './DataVisual';
 interface ResultViewProps {
   record: ExamAttemptRecord;
   exam: MockExam;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
   onBackToLobby: () => void;
 }
 
@@ -14,6 +17,8 @@ type ReviewFilter = 'all' | 'wrong' | 'unanswered' | 'bookmarked';
 export const ResultView: React.FC<ResultViewProps> = ({
   record,
   exam,
+  theme,
+  onToggleTheme,
   onBackToLobby,
 }) => {
   const [filter, setFilter] = useState<ReviewFilter>('wrong');
@@ -45,9 +50,19 @@ export const ResultView: React.FC<ResultViewProps> = ({
             <span className="sk-mark-badge">SKCT 결과</span>
             <span>{record.mockTitle} · 성적 분석 및 해설</span>
           </div>
-          <button type="button" className="btn btn-primary" onClick={onBackToLobby}>
-            메인 화면으로 돌아가기
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={onToggleTheme}
+              title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+            >
+              {theme === 'dark' ? '☀️ 라이트모드' : '🌙 다크모드'}
+            </button>
+            <button type="button" className="btn btn-primary" onClick={onBackToLobby}>
+              메인 화면으로 돌아가기
+            </button>
+          </div>
         </div>
       </header>
 
@@ -73,8 +88,8 @@ export const ResultView: React.FC<ResultViewProps> = ({
             <div className="kpi-label">응답 분포 (정답 / 오답 / 패스)</div>
             <div className="kpi-value" style={{ fontSize: '19px' }}>
               {record.totalCorrect} /{' '}
-              <span style={{ color: '#dc2626' }}>{record.totalWrong}</span> /{' '}
-              <span style={{ color: '#718096' }}>{record.totalUnanswered}</span>
+              <span style={{ color: 'var(--danger)' }}>{record.totalWrong}</span> /{' '}
+              <span style={{ color: 'var(--text-muted)' }}>{record.totalUnanswered}</span>
             </div>
             <div className="kpi-sub">
               {record.mode === 'real' ? '실전 모드' : '연습 모드'} ·{' '}
@@ -121,22 +136,22 @@ export const ResultView: React.FC<ResultViewProps> = ({
                     sr.answered > 0 ? sr.timeSpentSeconds / sr.answered : null;
                   const paceColor =
                     sr.timeSpentSeconds === 0
-                      ? '#64748b'
+                      ? 'var(--text-muted)'
                       : avgAllSec <= recSec
-                        ? '#15803d'
+                        ? 'var(--success)'
                         : avgAllSec <= recSec * 1.25
-                          ? '#b45309'
-                          : '#dc2626';
+                          ? 'var(--sk-orange-text)'
+                          : 'var(--danger)';
 
                   return (
                     <tr key={sr.subject}>
                       <td style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{meta.name}</td>
                       <td className="tabular">{sr.total}</td>
                       <td className="tabular">{sr.answered}</td>
-                      <td className="tabular" style={{ color: '#15803d', fontWeight: 700 }}>
+                      <td className="tabular" style={{ color: 'var(--success)', fontWeight: 700 }}>
                         {sr.correct}
                       </td>
-                      <td className="tabular" style={{ color: '#dc2626' }}>
+                      <td className="tabular" style={{ color: 'var(--danger)' }}>
                         {sr.wrong}
                       </td>
                       <td className="tabular">{sr.unanswered}</td>
@@ -150,11 +165,11 @@ export const ResultView: React.FC<ResultViewProps> = ({
                         <span style={{ color: paceColor, fontWeight: 800 }}>
                           {avgAllSec.toFixed(1)}초
                         </span>{' '}
-                        <span style={{ fontSize: '12.5px', color: '#64748b' }}>
+                        <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
                           (권장 {recSec}초)
                         </span>
                         {avgAnsweredSec !== null && sr.answered !== sr.total && (
-                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
                             응답 문항 기준 {avgAnsweredSec.toFixed(1)}초
                           </div>
                         )}
@@ -175,22 +190,22 @@ export const ResultView: React.FC<ResultViewProps> = ({
                   const totalRec = Math.round(sumLimit / Math.max(sumTotal, 1));
                   const totalPaceColor =
                     sumSpent === 0
-                      ? '#64748b'
+                      ? 'var(--text-muted)'
                       : totalAvg <= totalRec
-                        ? '#15803d'
+                        ? 'var(--success)'
                         : totalAvg <= totalRec * 1.25
-                          ? '#b45309'
-                          : '#dc2626';
+                          ? 'var(--sk-orange-text)'
+                          : 'var(--danger)';
 
                   return (
-                    <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                    <tr style={{ background: 'var(--bg-elevated)', fontWeight: 700 }}>
                       <td style={{ whiteSpace: 'nowrap' }}>합계 / 평균</td>
                       <td className="tabular">{sumTotal}</td>
                       <td className="tabular">{sumAnswered}</td>
-                      <td className="tabular" style={{ color: '#15803d' }}>
+                      <td className="tabular" style={{ color: 'var(--success)' }}>
                         {sumCorrect}
                       </td>
-                      <td className="tabular" style={{ color: '#dc2626' }}>
+                      <td className="tabular" style={{ color: 'var(--danger)' }}>
                         {sumWrong}
                       </td>
                       <td className="tabular">{sumUnanswered}</td>
@@ -202,7 +217,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
                         <span style={{ color: totalPaceColor, fontWeight: 800 }}>
                           {totalAvg.toFixed(1)}초
                         </span>{' '}
-                        <span style={{ fontSize: '12.5px', color: '#64748b', fontWeight: 600 }}>
+                        <span style={{ fontSize: '12.5px', color: 'var(--text-muted)', fontWeight: 600 }}>
                           (권장 {totalRec}초)
                         </span>
                       </td>
@@ -218,7 +233,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
         <section className="panel-box">
           <h2 className="panel-heading">
             <span>문항별 오답노트 · 해설 보기</span>
-            <span style={{ fontSize: '12px', color: '#718096' }}>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
               표시 중: {filteredQuestions.length}문항
             </span>
           </h2>
@@ -270,7 +285,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
               style={{
                 padding: '32px',
                 textAlign: 'center',
-                color: '#718096',
+                color: 'var(--text-muted)',
                 fontSize: '13.5px',
               }}
             >
@@ -296,22 +311,22 @@ export const ResultView: React.FC<ResultViewProps> = ({
                       style={{
                         color:
                           userAns === null
-                            ? '#718096'
+                            ? 'var(--text-muted)'
                             : isCorrect
-                              ? '#15803d'
-                              : '#dc2626',
+                              ? 'var(--success)'
+                              : 'var(--danger)',
                         borderColor:
                           userAns === null
-                            ? '#d6dce3'
+                            ? 'var(--border-color)'
                             : isCorrect
-                              ? '#86efac'
-                              : '#fca5a5',
+                              ? 'var(--success-border)'
+                              : 'var(--danger-border)',
                         background:
                           userAns === null
-                            ? '#f7f8fa'
+                            ? 'var(--bg-subtle)'
                             : isCorrect
-                              ? '#f0fdf4'
-                              : '#fef2f2',
+                              ? 'var(--success-soft)'
+                              : 'var(--danger-soft)',
                       }}
                     >
                       {userAns === null

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import type { ThemeMode } from '../App';
 import { SUBJECTS, TOTAL_QUESTIONS, TOTAL_TIME_SECONDS } from '../data/subjects';
 import {
   ExamAttemptRecord,
@@ -12,6 +13,8 @@ import {
 interface LobbyProps {
   exams: MockExam[];
   history: ExamAttemptRecord[];
+  theme: ThemeMode;
+  onToggleTheme: () => void;
   onStartExam: (config: ExamConfig) => void;
   onViewHistoryResult: (record: ExamAttemptRecord) => void;
   onClearHistory: () => void;
@@ -20,6 +23,8 @@ interface LobbyProps {
 export const Lobby: React.FC<LobbyProps> = ({
   exams,
   history,
+  theme,
+  onToggleTheme,
   onStartExam,
   onViewHistoryResult,
   onClearHistory,
@@ -74,8 +79,18 @@ export const Lobby: React.FC<LobbyProps> = ({
             <span className="sk-mark-badge">SKCT</span>
             <span>SK하이닉스 메인터넌스 · 오퍼레이터 온라인 모의고사</span>
           </div>
-          <div style={{ fontSize: '13.5px', color: '#4a5568', fontWeight: 600 }}>
-            고졸 · 초대졸(생산직) 인지역량 실전 대비
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ fontSize: '13.5px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+              고졸 · 초대졸(생산직) 인지역량 실전 대비
+            </div>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={onToggleTheme}
+              title={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+            >
+              {theme === 'dark' ? '☀️ 라이트모드' : '🌙 다크모드'}
+            </button>
           </div>
         </div>
       </header>
@@ -86,7 +101,7 @@ export const Lobby: React.FC<LobbyProps> = ({
             <div style={{ fontSize: '15.5px', fontWeight: 800, marginBottom: '5px' }}>
               실제 시험 출제 구성 (인지역량 4개 영역 · {TOTAL_QUESTIONS}문항 · 35분 · 5지선다)
             </div>
-            <div style={{ fontSize: '13.5px', color: '#64748b' }}>
+            <div style={{ fontSize: '13.5px', color: 'var(--text-muted)' }}>
               언어표현은 6초/문항의 극심한 타임어택이며, 수리·자료는 화면 내 계산기/그림판을 활용해 정확도를 높여야 합니다.
             </div>
           </div>
@@ -96,7 +111,7 @@ export const Lobby: React.FC<LobbyProps> = ({
               return (
                 <div key={s.id} className="spec-pill tabular">
                   <strong>{s.name}</strong> {s.questionCount}문항 / {s.timeLimitSeconds / 60}분{' '}
-                  <span style={{ color: '#ea002c', fontWeight: 700 }}>(문항당 {secPerQ}초)</span>
+                  <span style={{ color: 'var(--sk-red)', fontWeight: 700 }}>(문항당 {secPerQ}초)</span>
                 </div>
               );
             })}
@@ -108,7 +123,7 @@ export const Lobby: React.FC<LobbyProps> = ({
           <section className="panel-box">
             <h2 className="panel-heading">
               <span>1. 모의고사 회차 선택 (총 5회분 · 500문항)</span>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>
                 회차별 100문항
               </span>
             </h2>
@@ -131,16 +146,16 @@ export const Lobby: React.FC<LobbyProps> = ({
                     <div className="mock-item-meta tabular">
                       {latest ? (
                         <>
-                          <div style={{ color: '#ea002c' }}>
+                          <div style={{ color: 'var(--sk-red)' }}>
                             최근 {latest.totalCorrect}/{latest.totalQuestions}문항
                           </div>
-                          <div style={{ fontSize: '12px', color: '#64748b' }}>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                             {latest.mode === 'real' ? '실전' : '연습'} ·{' '}
                             {new Date(latest.completedAt).toLocaleDateString('ko-KR')}
                           </div>
                         </>
                       ) : (
-                        <span style={{ color: '#64748b' }}>미응시 · 100문항</span>
+                        <span style={{ color: 'var(--text-muted)' }}>미응시 · 100문항</span>
                       )}
                     </div>
                   </button>
@@ -186,7 +201,7 @@ export const Lobby: React.FC<LobbyProps> = ({
               <span className="config-label">
                 문제 보기 방식{' '}
                 {mode === 'real' && (
-                  <span style={{ color: '#ea002c', fontWeight: 600, marginLeft: '6px' }}>
+                  <span style={{ color: 'var(--sk-red)', fontWeight: 600, marginLeft: '6px' }}>
                     (실전 모드는 한 문제씩 고정)
                   </span>
                 )}
@@ -293,7 +308,7 @@ export const Lobby: React.FC<LobbyProps> = ({
         <section className="panel-box" style={{ marginTop: '18px' }}>
           <h2 className="panel-heading">
             <span>영역별 문항당 제한 시간 &amp; 합격 가이드북 SKCT 공략법</span>
-            <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>
               가이드북 합격자 후기 기반
             </span>
           </h2>
@@ -350,7 +365,7 @@ export const Lobby: React.FC<LobbyProps> = ({
                       </td>
                       <td
                         className="tabular nowrap-col"
-                        style={{ color: '#ea002c', fontWeight: 800 }}
+                        style={{ color: 'var(--sk-red)', fontWeight: 800 }}
                       >
                         문항당 {secPerQ}초
                       </td>
@@ -362,16 +377,16 @@ export const Lobby: React.FC<LobbyProps> = ({
                     </tr>
                   );
                 })}
-                <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                <tr style={{ background: 'var(--bg-elevated)', fontWeight: 700 }}>
                   <td className="nowrap-col">합계 / 평균</td>
                   <td className="tabular nowrap-col">{TOTAL_QUESTIONS}문항</td>
                   <td className="tabular nowrap-col">
                     {TOTAL_TIME_SECONDS / 60}분 ({TOTAL_TIME_SECONDS.toLocaleString()}초)
                   </td>
-                  <td className="tabular nowrap-col" style={{ color: '#ea002c' }}>
+                  <td className="tabular nowrap-col" style={{ color: 'var(--sk-red)' }}>
                     평균 {Math.round(TOTAL_TIME_SECONDS / TOTAL_QUESTIONS)}초
                   </td>
-                  <td colSpan={2} style={{ color: '#4a5568', fontWeight: 600, lineHeight: 1.6 }}>
+                  <td colSpan={2} style={{ color: 'var(--text-secondary)', fontWeight: 600, lineHeight: 1.6 }}>
                     ※ 합격 후기 기준 100문항 중 90~95문항만 확실히 풀고 모르는 문제는 비워둬도 충분한 합격권입니다.
                   </td>
                 </tr>
@@ -449,10 +464,10 @@ export const Lobby: React.FC<LobbyProps> = ({
                         {rec.mode === 'real' ? '실전' : '연습'} ·{' '}
                         {rec.viewMode === 'single' ? '한문제씩' : '여러문제씩'}
                       </td>
-                      <td className="tabular" style={{ color: '#15803d', fontWeight: 700 }}>
+                      <td className="tabular" style={{ color: 'var(--success)', fontWeight: 700 }}>
                         {rec.totalCorrect} / {rec.totalQuestions}
                       </td>
-                      <td className="tabular" style={{ color: '#dc2626' }}>
+                      <td className="tabular" style={{ color: 'var(--danger)' }}>
                         {rec.totalWrong}
                       </td>
                       <td className="tabular">{rec.totalUnanswered}</td>
