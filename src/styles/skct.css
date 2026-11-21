@@ -1345,6 +1345,9 @@ select {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-height: 455px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .mock-item {

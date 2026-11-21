@@ -119,10 +119,13 @@ export const Lobby: React.FC<LobbyProps> = ({
         </div>
 
         <div className="lobby-grid">
-          {/* Left: 5 Mock Exams */}
+          {/* Left: Mock Exams */}
           <section className="panel-box">
             <h2 className="panel-heading">
-              <span>1. 모의고사 회차 선택 (총 5회분 · 500문항)</span>
+              <span>
+                1. 모의고사 회차 선택 (총 {exams.length}회분 ·{' '}
+                {exams.reduce((sum, ex) => sum + ex.questions.length, 0).toLocaleString()}문항)
+              </span>
               <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>
                 회차별 100문항
               </span>
