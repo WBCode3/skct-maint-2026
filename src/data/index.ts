@@ -9,6 +9,11 @@ import { mock7 } from './mock7';
 import { mock8 } from './mock8';
 import { mock9 } from './mock9';
 import { mock10 } from './mock10';
+import { mock11 } from './mock11';
+import { mock12 } from './mock12';
+import { mock13 } from './mock13';
+import { mock14 } from './mock14';
+import { mock15 } from './mock15';
 
 export const MOCK_EXAMS: MockExam[] = [
   mock1,
@@ -21,4 +26,9 @@ export const MOCK_EXAMS: MockExam[] = [
   mock8,
   mock9,
   mock10,
+  mock11,
+  mock12,
+  mock13,
+  mock14,
+  mock15,
 ];
