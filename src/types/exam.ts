@@ -52,10 +52,18 @@ export interface Question {
 }
 
 export interface MockExam {
-  id: number; // 1..5
+  id: number;
   title: string;
   subtitle: string;
   questions: Question[]; // 100 questions total (30 + 20 + 30 + 20)
+}
+
+export interface MockExamMeta {
+  id: number;
+  title: string;
+  subtitle: string;
+  questionCount: number;
+  tier: '표준' | '중상' | '고난도';
 }
 
 export type ExamMode = 'practice' | 'real';

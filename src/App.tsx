@@ -2,8 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { ExamWorkspace } from './components/ExamWorkspace';
 import { Lobby } from './components/Lobby';
 import { ResultView } from './components/ResultView';
-import { MOCK_EXAMS } from './data';
-import { ExamAttemptRecord, ExamConfig } from './types/exam';
+import { loadMockExam, MOCK_EXAM_LIST } from './data';
+import { ExamAttemptRecord, ExamConfig, MockExam } from './types/exam';
 
 const STORAGE_KEY = 'skct_maintenance_history_v1';
 const THEME_STORAGE_KEY = 'skct_theme_v1';
@@ -12,11 +12,12 @@ export type ThemeMode = 'light' | 'dark';
 
 type ScreenState =
   | { view: 'lobby' }
-  | { view: 'exam'; config: ExamConfig }
-  | { view: 'result'; record: ExamAttemptRecord };
+  | { view: 'exam'; config: ExamConfig; exam: MockExam }
+  | { view: 'result'; record: ExamAttemptRecord; exam: MockExam };
 
 export const App: React.FC = () => {
   const [screen, setScreen] = useState<ScreenState>({ view: 'lobby' });
+  const [loadingExamId, setLoadingExamId] = useState<number | null>(null);
   const [theme, setTheme] = useState<ThemeMode>(() => {
     try {
       const saved = localStorage.getItem(THEME_STORAGE_KEY);
@@ -56,13 +57,31 @@ export const App: React.FC = () => {
     }
   }, [history]);
 
-  const handleStartExam = (config: ExamConfig) => {
-    setScreen({ view: 'exam', config });
+  const handleStartExam = async (config: ExamConfig) => {
+    if (loadingExamId !== null) return;
+    setLoadingExamId(config.mockId);
+    try {
+      const exam = await loadMockExam(config.mockId);
+      setScreen({ view: 'exam', config, exam });
+    } finally {
+      setLoadingExamId(null);
+    }
   };
 
-  const handleCompleteExam = (record: ExamAttemptRecord) => {
+  const handleViewHistoryResult = async (record: ExamAttemptRecord) => {
+    if (loadingExamId !== null) return;
+    setLoadingExamId(record.mockId);
+    try {
+      const exam = await loadMockExam(record.mockId);
+      setScreen({ view: 'result', record, exam });
+    } finally {
+      setLoadingExamId(null);
+    }
+  };
+
+  const handleCompleteExam = (record: ExamAttemptRecord, exam: MockExam) => {
     setHistory((prev) => [record, ...prev].slice(0, 30));
-    setScreen({ view: 'result', record });
+    setScreen({ view: 'result', record, exam });
   };
 
   const handleClearHistory = () => {
@@ -75,25 +94,23 @@ export const App: React.FC = () => {
   };
 
   if (screen.view === 'exam') {
-    const exam = MOCK_EXAMS.find((m) => m.id === screen.config.mockId) ?? MOCK_EXAMS[0];
     return (
       <ExamWorkspace
-        exam={exam}
+        exam={screen.exam}
         config={screen.config}
         theme={theme}
         onToggleTheme={toggleTheme}
-        onComplete={handleCompleteExam}
+        onComplete={(record) => handleCompleteExam(record, screen.exam)}
         onExitToLobby={() => setScreen({ view: 'lobby' })}
       />
     );
   }
 
   if (screen.view === 'result') {
-    const exam = MOCK_EXAMS.find((m) => m.id === screen.record.mockId) ?? MOCK_EXAMS[0];
     return (
       <ResultView
         record={screen.record}
-        exam={exam}
+        exam={screen.exam}
         theme={theme}
         onToggleTheme={toggleTheme}
         onBackToLobby={() => setScreen({ view: 'lobby' })}
@@ -103,12 +120,13 @@ export const App: React.FC = () => {
 
   return (
     <Lobby
-      exams={MOCK_EXAMS}
+      exams={MOCK_EXAM_LIST}
       history={history}
       theme={theme}
+      loadingExamId={loadingExamId}
       onToggleTheme={toggleTheme}
       onStartExam={handleStartExam}
-      onViewHistoryResult={(record) => setScreen({ view: 'result', record })}
+      onViewHistoryResult={handleViewHistoryResult}
       onClearHistory={handleClearHistory}
     />
   );

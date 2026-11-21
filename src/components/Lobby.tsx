@@ -1,35 +1,41 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { ThemeMode } from '../App';
 import { SUBJECTS, TOTAL_QUESTIONS, TOTAL_TIME_SECONDS } from '../data/subjects';
 import {
   ExamAttemptRecord,
   ExamConfig,
   ExamMode,
-  MockExam,
+  MockExamMeta,
   SubjectId,
   ViewMode,
 } from '../types/exam';
 
 interface LobbyProps {
-  exams: MockExam[];
+  exams: MockExamMeta[];
   history: ExamAttemptRecord[];
   theme: ThemeMode;
+  loadingExamId: number | null;
   onToggleTheme: () => void;
   onStartExam: (config: ExamConfig) => void;
   onViewHistoryResult: (record: ExamAttemptRecord) => void;
   onClearHistory: () => void;
 }
 
+type TierFilter = 'all' | '표준' | '중상' | '고난도' | 'unattempted';
+
 export const Lobby: React.FC<LobbyProps> = ({
   exams,
   history,
   theme,
+  loadingExamId,
   onToggleTheme,
   onStartExam,
   onViewHistoryResult,
   onClearHistory,
 }) => {
   const [selectedMockId, setSelectedMockId] = useState<number>(1);
+  const [tierFilter, setTierFilter] = useState<TierFilter>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [mode, setMode] = useState<ExamMode>('real');
   const [viewMode, setViewMode] = useState<ViewMode>('single');
   const [selectedSubjects, setSelectedSubjects] = useState<SubjectId[]>(
@@ -38,6 +44,35 @@ export const Lobby: React.FC<LobbyProps> = ({
   const [allowBackInRealSingle, setAllowBackInRealSingle] = useState<boolean>(false);
   const [autoClearScratchOnNext, setAutoClearScratchOnNext] = useState<boolean>(true);
   const [practiceNoTimer, setPracticeNoTimer] = useState<boolean>(false);
+
+  const attemptedIds = useMemo(() => new Set(history.map((h) => h.mockId)), [history]);
+
+  const tierCounts = useMemo(() => {
+    const counts = { 표준: 0, 중상: 0, 고난도: 0, unattempted: 0 };
+    for (const ex of exams) {
+      counts[ex.tier]++;
+      if (!attemptedIds.has(ex.id)) counts.unattempted++;
+    }
+    return counts;
+  }, [exams, attemptedIds]);
+
+  const filteredExams = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return exams.filter((ex) => {
+      if (tierFilter === 'unattempted') {
+        if (attemptedIds.has(ex.id)) return false;
+      } else if (tierFilter !== 'all' && ex.tier !== tierFilter) {
+        return false;
+      }
+      if (!q) return true;
+      return (
+        String(ex.id).includes(q) ||
+        ex.title.toLowerCase().includes(q) ||
+        ex.subtitle.toLowerCase().includes(q) ||
+        ex.tier.toLowerCase().includes(q)
+      );
+    });
+  }, [exams, tierFilter, searchQuery, attemptedIds]);
 
   const toggleSubject = (id: SubjectId) => {
     setSelectedSubjects((prev) => {
@@ -124,46 +159,94 @@ export const Lobby: React.FC<LobbyProps> = ({
             <h2 className="panel-heading">
               <span>
                 1. 모의고사 회차 선택 (총 {exams.length}회분 ·{' '}
-                {exams.reduce((sum, ex) => sum + ex.questions.length, 0).toLocaleString()}문항)
+                {exams.reduce((sum, ex) => sum + ex.questionCount, 0).toLocaleString()}문항)
               </span>
               <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                회차별 100문항
+                표시 {filteredExams.length}회 · 회차별 100문항
               </span>
             </h2>
 
-            <div className="mock-list">
-              {exams.map((exam) => {
-                const latest = getLatestScoreForMock(exam.id);
-                const isSelected = selectedMockId === exam.id;
-                return (
+            <div className="mock-filter-bar">
+              <div className="mock-filter-chips">
+                {(
+                  [
+                    ['all', `전체 (${exams.length})`],
+                    ['표준', `표준 (${tierCounts.표준})`],
+                    ['중상', `중상 (${tierCounts.중상})`],
+                    ['고난도', `고난도 (${tierCounts.고난도})`],
+                    ['unattempted', `미응시 (${tierCounts.unattempted})`],
+                  ] as [TierFilter, string][]
+                ).map(([key, label]) => (
                   <button
-                    key={exam.id}
+                    key={key}
                     type="button"
-                    className={`mock-item ${isSelected ? 'selected' : ''}`}
-                    onClick={() => setSelectedMockId(exam.id)}
+                    className={`mock-filter-chip ${tierFilter === key ? 'active' : ''}`}
+                    onClick={() => setTierFilter(key)}
                   >
-                    <div>
-                      <div className="mock-item-title">{exam.title}</div>
-                      <div className="mock-item-sub">{exam.subtitle}</div>
-                    </div>
-                    <div className="mock-item-meta tabular">
-                      {latest ? (
-                        <>
-                          <div style={{ color: 'var(--sk-red)' }}>
-                            최근 {latest.totalCorrect}/{latest.totalQuestions}문항
-                          </div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                            {latest.mode === 'real' ? '실전' : '연습'} ·{' '}
-                            {new Date(latest.completedAt).toLocaleDateString('ko-KR')}
-                          </div>
-                        </>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)' }}>미응시 · 100문항</span>
-                      )}
-                    </div>
+                    {label}
                   </button>
-                );
-              })}
+                ))}
+              </div>
+              <input
+                type="search"
+                className="mock-search-input"
+                placeholder="회차/유형 검색 (예: 25, 고난도)"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="mock-list">
+              {filteredExams.length === 0 ? (
+                <div
+                  style={{
+                    padding: '28px 16px',
+                    textAlign: 'center',
+                    color: 'var(--text-muted)',
+                    fontSize: '14px',
+                  }}
+                >
+                  조건에 맞는 모의고사 회차가 없습니다.
+                </div>
+              ) : (
+                filteredExams.map((exam) => {
+                  const latest = getLatestScoreForMock(exam.id);
+                  const isSelected = selectedMockId === exam.id;
+                  return (
+                    <button
+                      key={exam.id}
+                      type="button"
+                      className={`mock-item ${isSelected ? 'selected' : ''}`}
+                      onClick={() => setSelectedMockId(exam.id)}
+                    >
+                      <div>
+                        <div className="mock-item-title">
+                          {exam.title}
+                          <span className={`tier-badge tier-${exam.tier}`}>{exam.tier}</span>
+                        </div>
+                        <div className="mock-item-sub">{exam.subtitle}</div>
+                      </div>
+                      <div className="mock-item-meta tabular">
+                        {latest ? (
+                          <>
+                            <div style={{ color: 'var(--sk-red)' }}>
+                              최근 {latest.totalCorrect}/{latest.totalQuestions}문항
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                              {latest.mode === 'real' ? '실전' : '연습'} ·{' '}
+                              {new Date(latest.completedAt).toLocaleDateString('ko-KR')}
+                            </div>
+                          </>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)' }}>
+                            미응시 · {exam.questionCount}문항
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </section>
 
@@ -300,9 +383,12 @@ export const Lobby: React.FC<LobbyProps> = ({
             <button
               type="button"
               className="btn btn-primary start-exam-btn"
+              disabled={loadingExamId !== null}
               onClick={handleStart}
             >
-              제{selectedMockId}회 모의고사 시작하기
+              {loadingExamId === selectedMockId
+                ? `제${selectedMockId}회 모의고사 불러오는 중...`
+                : `제${selectedMockId}회 모의고사 시작하기`}
             </button>
           </section>
         </div>
@@ -485,9 +571,10 @@ export const Lobby: React.FC<LobbyProps> = ({
                         <button
                           type="button"
                           className="btn btn-outline btn-sm"
+                          disabled={loadingExamId !== null}
                           onClick={() => onViewHistoryResult(rec)}
                         >
-                          성적표 · 해설
+                          {loadingExamId === rec.mockId ? '불러오는 중...' : '성적표 · 해설'}
                         </button>
                       </td>
                     </tr>
