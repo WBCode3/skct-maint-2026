@@ -250,59 +250,132 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
     return () => window.clearInterval(timer);
   }, [advanceToNextSubject, currentSubjectId, isPaused, isReadyOverlay, subjectTimeLimit]);
 
-  const handleSelectAnswer = (questionId: string, optionIndex: number | null) => {
+  const handleSelectAnswer = useCallback((questionId: string, optionIndex: number | null) => {
     setAnswers((prev) => ({ ...prev, [questionId]: optionIndex }));
-  };
+  }, []);
 
   const handleToggleBookmark = (questionId: string) => {
     setBookmarks((prev) => ({ ...prev, [questionId]: !prev[questionId] }));
   };
 
-  const handleJumpOrMoveTo = (targetIdx: number) => {
-    if (targetIdx < 0 || targetIdx >= subjectQuestions.length) return;
-
-    if (viewMode === 'multi') {
-      setQuestionIndex(targetIdx);
-      const q = subjectQuestions[targetIdx];
-      if (q) {
-        const el = document.getElementById(`question-${q.id}`);
-        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const performSingleMove = useCallback(
+    (targetIdx: number) => {
+      if (targetIdx > questionIndex && config.autoClearScratchOnNext) {
+        setClearScratchSignal((n) => n + 1);
       }
+      setQuestionIndex(targetIdx);
+      setMaxReachedIndex((m) => Math.max(m, targetIdx));
+      if (scrollAreaRef.current) {
+        scrollAreaRef.current.scrollTop = 0;
+      }
+    },
+    [config.autoClearScratchOnNext, questionIndex],
+  );
+
+  const handleJumpOrMoveTo = useCallback(
+    (targetIdx: number) => {
+      if (targetIdx < 0 || targetIdx >= subjectQuestions.length) return;
+
+      if (viewMode === 'multi') {
+        setQuestionIndex(targetIdx);
+        const q = subjectQuestions[targetIdx];
+        if (q) {
+          const el = document.getElementById(`question-${q.id}`);
+          el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        return;
+      }
+
+      // Single view
+      if (
+        config.mode === 'real' &&
+        !config.allowBackInRealSingle &&
+        targetIdx < questionIndex
+      ) {
+        return; // Strict SKCT rule: cannot return to previous question
+      }
+
+      if (
+        config.mode === 'real' &&
+        !suppressSkipConfirm &&
+        targetIdx > questionIndex &&
+        (answers[currentQuestion.id] === undefined || answers[currentQuestion.id] === null)
+      ) {
+        setSkipConfirmTarget(targetIdx);
+        return;
+      }
+
+      performSingleMove(targetIdx);
+    },
+    [
+      answers,
+      config.allowBackInRealSingle,
+      config.mode,
+      currentQuestion,
+      performSingleMove,
+      questionIndex,
+      subjectQuestions,
+      suppressSkipConfirm,
+      viewMode,
+    ],
+  );
+
+  // Keyboard shortcuts in single-question view: 1~5 to select answer, ArrowLeft/ArrowRight to navigate
+  useEffect(() => {
+    if (viewMode !== 'single' || !currentQuestion) return;
+    if (isReadyOverlay || skipConfirmTarget !== null || showSubmitConfirm || showExitConfirm || showHelpModal) {
       return;
     }
 
-    // Single view
-    if (
-      config.mode === 'real' &&
-      !config.allowBackInRealSingle &&
-      targetIdx < questionIndex
-    ) {
-      return; // Strict SKCT rule: cannot return to previous question
-    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable ||
+          target.closest('.calc-card'))
+      ) {
+        return;
+      }
+      if (document.querySelector('.calc-card.kbd-active')) return;
 
-    if (
-      config.mode === 'real' &&
-      !suppressSkipConfirm &&
-      targetIdx > questionIndex &&
-      (answers[currentQuestion.id] === undefined || answers[currentQuestion.id] === null)
-    ) {
-      setSkipConfirmTarget(targetIdx);
-      return;
-    }
+      if (e.key >= '1' && e.key <= '5') {
+        e.preventDefault();
+        const optIdx = Number(e.key) - 1;
+        const cur = answers[currentQuestion.id] ?? null;
+        handleSelectAnswer(currentQuestion.id, cur === optIdx ? null : optIdx);
+      } else if (e.key === 'ArrowRight') {
+        if (questionIndex + 1 < subjectQuestions.length) {
+          e.preventDefault();
+          handleJumpOrMoveTo(questionIndex + 1);
+        }
+      } else if (e.key === 'ArrowLeft') {
+        if (questionIndex > 0) {
+          e.preventDefault();
+          handleJumpOrMoveTo(questionIndex - 1);
+        }
+      }
+    };
 
-    performSingleMove(targetIdx);
-  };
-
-  const performSingleMove = (targetIdx: number) => {
-    if (targetIdx > questionIndex && config.autoClearScratchOnNext) {
-      setClearScratchSignal((n) => n + 1);
-    }
-    setQuestionIndex(targetIdx);
-    setMaxReachedIndex((m) => Math.max(m, targetIdx));
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = 0;
-    }
-  };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [
+    answers,
+    currentQuestion,
+    handleJumpOrMoveTo,
+    handleSelectAnswer,
+    isReadyOverlay,
+    questionIndex,
+    showExitConfirm,
+    showHelpModal,
+    showSubmitConfirm,
+    skipConfirmTarget,
+    subjectQuestions.length,
+    viewMode,
+  ]);
 
   const handleResetSubjectAnswers = () => {
     setAnswers((prev) => {
@@ -552,116 +625,141 @@ export const ExamWorkspace: React.FC<ExamWorkspaceProps> = ({
           </div>
 
           <div ref={scrollAreaRef} className="question-scroll">
-            {viewMode === 'single' ? (
-              currentQuestion && (
-                <QuestionCard
-                  question={currentQuestion}
-                  selectedOption={answers[currentQuestion.id] ?? null}
-                  bookmarked={!!bookmarks[currentQuestion.id]}
-                  mode={config.mode}
-                  singleView
-                  fontSize={fontSize}
-                  showInstantAnswer={!!instantRevealed[currentQuestion.id]}
-                  onSelectAnswer={(optIdx) =>
-                    handleSelectAnswer(currentQuestion.id, optIdx)
-                  }
-                  onToggleBookmark={() => handleToggleBookmark(currentQuestion.id)}
-                  onToggleInstantAnswer={() =>
-                    setInstantRevealed((prev) => ({
-                      ...prev,
-                      [currentQuestion.id]: !prev[currentQuestion.id],
-                    }))
-                  }
-                />
-              )
-            ) : (
-              subjectQuestions.map((q, idx) => (
-                <div
-                  key={q.id}
-                  onMouseDown={() => setQuestionIndex(idx)}
-                >
-                  <QuestionCard
-                    question={q}
-                    selectedOption={answers[q.id] ?? null}
-                    bookmarked={!!bookmarks[q.id]}
-                    mode={config.mode}
-                    singleView={false}
-                    fontSize={fontSize}
-                    showInstantAnswer={!!instantRevealed[q.id]}
-                    onSelectAnswer={(optIdx) => handleSelectAnswer(q.id, optIdx)}
-                    onToggleBookmark={() => handleToggleBookmark(q.id)}
-                    onToggleInstantAnswer={() =>
-                      setInstantRevealed((prev) => ({
-                        ...prev,
-                        [q.id]: !prev[q.id],
-                      }))
-                    }
-                  />
-                </div>
-              ))
-            )}
+            <div className="question-stage">
+              {viewMode === 'single' ? (
+                currentQuestion && (
+                  <>
+                    <QuestionCard
+                      question={currentQuestion}
+                      selectedOption={answers[currentQuestion.id] ?? null}
+                      bookmarked={!!bookmarks[currentQuestion.id]}
+                      mode={config.mode}
+                      singleView
+                      fontSize={fontSize}
+                      showInstantAnswer={!!instantRevealed[currentQuestion.id]}
+                      onSelectAnswer={(optIdx) =>
+                        handleSelectAnswer(currentQuestion.id, optIdx)
+                      }
+                      onToggleBookmark={() => handleToggleBookmark(currentQuestion.id)}
+                      onToggleInstantAnswer={() =>
+                        setInstantRevealed((prev) => ({
+                          ...prev,
+                          [currentQuestion.id]: !prev[currentQuestion.id],
+                        }))
+                      }
+                    />
+
+                    <div className="question-inline-nav">
+                      <div className="question-inline-nav-group">
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          disabled={
+                            questionIndex === 0 ||
+                            (config.mode === 'real' && !config.allowBackInRealSingle)
+                          }
+                          onClick={() => handleJumpOrMoveTo(questionIndex - 1)}
+                        >
+                          ◀ 이전 문항
+                        </button>
+                        <span className="tabular question-inline-counter">
+                          {questionIndex + 1} / {subjectQuestions.length}
+                        </span>
+                      </div>
+
+                      <div className="question-inline-nav-group">
+                        {questionIndex + 1 < subjectQuestions.length ? (
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={() => handleJumpOrMoveTo(questionIndex + 1)}
+                          >
+                            다음 문항 ▶
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={() => setShowSubmitConfirm(true)}
+                          >
+                            {subjectIdx + 1 < subjects.length ? '다음 영역으로 이동' : '시험 최종 제출'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )
+              ) : (
+                subjectQuestions.map((q, idx) => (
+                  <div
+                    key={q.id}
+                    onMouseDown={() => setQuestionIndex(idx)}
+                  >
+                    <QuestionCard
+                      question={q}
+                      selectedOption={answers[q.id] ?? null}
+                      bookmarked={!!bookmarks[q.id]}
+                      mode={config.mode}
+                      singleView={false}
+                      fontSize={fontSize}
+                      showInstantAnswer={!!instantRevealed[q.id]}
+                      onSelectAnswer={(optIdx) => handleSelectAnswer(q.id, optIdx)}
+                      onToggleBookmark={() => handleToggleBookmark(q.id)}
+                      onToggleInstantAnswer={() =>
+                        setInstantRevealed((prev) => ({
+                          ...prev,
+                          [q.id]: !prev[q.id],
+                        }))
+                      }
+                    />
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
           <div className="question-footer">
-            {viewMode === 'single' ? (
-              <>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div className="question-footer-inner">
+              {viewMode === 'single' ? (
+                <>
+                  <span className="question-shortcut-hint">
+                    단축키: 숫자 <strong>1~5</strong> 답안 선택 · <strong>← / →</strong> 문항 이동
+                  </span>
                   <button
                     type="button"
-                    className="btn btn-outline"
-                    disabled={
-                      questionIndex === 0 ||
-                      (config.mode === 'real' && !config.allowBackInRealSingle)
-                    }
-                    onClick={() => handleJumpOrMoveTo(questionIndex - 1)}
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setShowSubmitConfirm(true)}
                   >
-                    ◀ 이전 문항
+                    {config.mode === 'practice'
+                      ? subjectIdx + 1 < subjects.length
+                        ? '다음 영역 / 채점하기'
+                        : '전체 채점 및 해설 보기'
+                      : subjectIdx + 1 < subjects.length
+                        ? `${currentMeta.name} 제출 후 다음 영역`
+                        : '최종 답안 제출하기'}
                   </button>
-                  <span className="tabular" style={{ fontSize: '13px', fontWeight: 700 }}>
-                    {questionIndex + 1} / {subjectQuestions.length}
+                </>
+              ) : (
+                <>
+                  <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                    좌측 OMR 답안지 번호를 클릭하면 해당 문항으로 바로 이동합니다.
                   </span>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {questionIndex + 1 < subjectQuestions.length ? (
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={() => handleJumpOrMoveTo(questionIndex + 1)}
-                    >
-                      다음 문항 ▶
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={() => setShowSubmitConfirm(true)}
-                    >
-                      {subjectIdx + 1 < subjects.length ? '다음 영역으로 이동' : '시험 최종 제출'}
-                    </button>
-                  )}
-                </div>
-              </>
-            ) : (
-              <>
-                <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-                  좌측 OMR 답안지 번호를 클릭하면 해당 문항으로 바로 이동합니다.
-                </span>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => setShowSubmitConfirm(true)}
-                >
-                  {config.mode === 'practice'
-                    ? subjectIdx + 1 < subjects.length
-                      ? '다음 영역 / 채점하기'
-                      : '전체 채점 및 해설 보기'
-                    : subjectIdx + 1 < subjects.length
-                      ? `${currentMeta.name} 제출 후 다음 영역`
-                      : '최종 답안 제출하기'}
-                </button>
-              </>
-            )}
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => setShowSubmitConfirm(true)}
+                  >
+                    {config.mode === 'practice'
+                      ? subjectIdx + 1 < subjects.length
+                        ? '다음 영역 / 채점하기'
+                        : '전체 채점 및 해설 보기'
+                      : subjectIdx + 1 < subjects.length
+                        ? `${currentMeta.name} 제출 후 다음 영역`
+                        : '최종 답안 제출하기'}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </main>
 

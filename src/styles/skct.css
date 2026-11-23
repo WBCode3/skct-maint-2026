@@ -713,8 +713,14 @@ svg text {
 .question-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 22px 26px 30px;
+  padding: 26px 26px 34px;
   background: var(--bg-surface);
+}
+
+.question-stage {
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
 }
 
 .question-card {
@@ -1004,14 +1010,52 @@ svg text {
   color: var(--text-body);
 }
 
+.question-inline-nav {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.question-inline-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.question-inline-counter {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
 .question-footer {
-  padding: 12px 18px;
+  padding: 11px 26px;
   border-top: 1px solid var(--border-color);
   background: var(--bg-subtle);
+}
+
+.question-footer-inner {
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.question-shortcut-hint {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.question-shortcut-hint strong {
+  color: var(--text-secondary);
 }
 
 /* Right Tools Panel (메모장/그림판 + 계산기) */
