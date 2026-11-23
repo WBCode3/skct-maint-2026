@@ -1769,7 +1769,8 @@ svg text {
 
 .result-calc-sidebar {
   position: sticky;
-  top: 18px;
+  top: clamp(48px, calc(54vh - 215px), 260px);
+  margin-top: 132px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1877,6 +1878,7 @@ svg text {
   }
   .result-calc-sidebar {
     position: static;
+    margin-top: 0;
     order: -1;
   }
   .result-kpi-grid {
