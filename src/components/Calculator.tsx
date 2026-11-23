@@ -138,7 +138,7 @@ export const Calculator: React.FC = () => {
       onFocus={() => setKbdActive(true)}
       onClick={() => {
         setKbdActive(true);
-        cardRef.current?.focus();
+        cardRef.current?.focus({ preventScroll: true });
       }}
       onKeyDown={handleKeyDown}
       className={`tool-card calc-card ${kbdActive ? 'kbd-active' : ''}`}

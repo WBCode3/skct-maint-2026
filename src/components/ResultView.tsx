@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { ThemeMode } from '../App';
 import { SUBJECT_MAP } from '../data/subjects';
 import { ExamAttemptRecord, MockExam, SubjectId } from '../types/exam';
+import { Calculator } from './Calculator';
 import { DataVisual } from './DataVisual';
 
 interface ResultViewProps {
@@ -23,6 +24,7 @@ export const ResultView: React.FC<ResultViewProps> = ({
 }) => {
   const [filter, setFilter] = useState<ReviewFilter>('wrong');
   const [subjectFilter, setSubjectFilter] = useState<SubjectId | 'all'>('all');
+  const [showCalc, setShowCalc] = useState<boolean>(true);
 
   const includedSubjects = new Set(record.subjectResults.map((s) => s.subject));
   const examQuestions = exam.questions.filter((q) => includedSubjects.has(q.subject));
@@ -50,7 +52,14 @@ export const ResultView: React.FC<ResultViewProps> = ({
             <span className="sk-mark-badge">SKCT 결과</span>
             <span>{record.mockTitle} · 성적 분석 및 해설</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={() => setShowCalc((prev) => !prev)}
+            >
+              {showCalc ? '🧮 계산기 숨기기' : '🧮 계산기 열기'}
+            </button>
             <button
               type="button"
               className="btn btn-outline btn-sm"
@@ -66,51 +75,52 @@ export const ResultView: React.FC<ResultViewProps> = ({
         </div>
       </header>
 
-      <main className="result-container">
-        <div className="result-kpi-grid">
-          <div className="kpi-card">
-            <div className="kpi-label">총 정답 문항</div>
-            <div className="kpi-value sk">
-              {record.totalCorrect} / {record.totalQuestions}
+      <main className={`result-container ${showCalc ? 'with-calc' : ''}`}>
+        <div className="result-main">
+          <div className="result-kpi-grid">
+            <div className="kpi-card">
+              <div className="kpi-label">총 정답 문항</div>
+              <div className="kpi-value sk">
+                {record.totalCorrect} / {record.totalQuestions}
+              </div>
+              <div className="kpi-sub">
+                정답률 {Math.round((record.totalCorrect / Math.max(record.totalQuestions, 1)) * 100)}%
+              </div>
             </div>
-            <div className="kpi-sub">
-              정답률 {Math.round((record.totalCorrect / Math.max(record.totalQuestions, 1)) * 100)}%
+
+            <div className="kpi-card">
+              <div className="kpi-label">오답 감점 반영 환산점수</div>
+              <div className="kpi-value">{record.estimatedNetScore.toFixed(2)}</div>
+              <div className="kpi-sub">모의 기준: 정답 +1 / 오답 -0.25 / 미응답 0</div>
+            </div>
+
+            <div className="kpi-card">
+              <div className="kpi-label">응답 분포 (정답 / 오답 / 패스)</div>
+              <div className="kpi-value" style={{ fontSize: '19px' }}>
+                {record.totalCorrect} /{' '}
+                <span style={{ color: 'var(--danger)' }}>{record.totalWrong}</span> /{' '}
+                <span style={{ color: 'var(--text-muted)' }}>{record.totalUnanswered}</span>
+              </div>
+              <div className="kpi-sub">
+                {record.mode === 'real' ? '실전 모드' : '연습 모드'} ·{' '}
+                {record.viewMode === 'single' ? '한 문제씩' : '여러 문제씩'}
+              </div>
+            </div>
+
+            <div className="kpi-card">
+              <div className="kpi-label">총 소요 시간</div>
+              <div className="kpi-value" style={{ fontSize: '21px' }}>
+                {formatTime(record.totalTimeSpentSeconds)}
+              </div>
+              <div className="kpi-sub">
+                {new Date(record.completedAt).toLocaleString('ko-KR')}
+              </div>
             </div>
           </div>
 
-          <div className="kpi-card">
-            <div className="kpi-label">오답 감점 반영 환산점수</div>
-            <div className="kpi-value">{record.estimatedNetScore.toFixed(2)}</div>
-            <div className="kpi-sub">모의 기준: 정답 +1 / 오답 -0.25 / 미응답 0</div>
-          </div>
-
-          <div className="kpi-card">
-            <div className="kpi-label">응답 분포 (정답 / 오답 / 패스)</div>
-            <div className="kpi-value" style={{ fontSize: '19px' }}>
-              {record.totalCorrect} /{' '}
-              <span style={{ color: 'var(--danger)' }}>{record.totalWrong}</span> /{' '}
-              <span style={{ color: 'var(--text-muted)' }}>{record.totalUnanswered}</span>
-            </div>
-            <div className="kpi-sub">
-              {record.mode === 'real' ? '실전 모드' : '연습 모드'} ·{' '}
-              {record.viewMode === 'single' ? '한 문제씩' : '여러 문제씩'}
-            </div>
-          </div>
-
-          <div className="kpi-card">
-            <div className="kpi-label">총 소요 시간</div>
-            <div className="kpi-value" style={{ fontSize: '21px' }}>
-              {formatTime(record.totalTimeSpentSeconds)}
-            </div>
-            <div className="kpi-sub">
-              {new Date(record.completedAt).toLocaleString('ko-KR')}
-            </div>
-          </div>
-        </div>
-
-        {/* Subject breakdown */}
-        <section className="panel-box" style={{ marginBottom: '20px' }}>
-          <h2 className="panel-heading">영역별 성적 상세</h2>
+          {/* Subject breakdown */}
+          <section className="panel-box" style={{ marginBottom: '20px' }}>
+            <h2 className="panel-heading">영역별 성적 상세</h2>
           <div style={{ overflowX: 'auto' }}>
             <table className="history-table">
               <thead>
@@ -371,7 +381,17 @@ export const ResultView: React.FC<ResultViewProps> = ({
               );
             })
           )}
-        </section>
+          </section>
+        </div>
+
+        {showCalc && (
+          <aside className="result-calc-sidebar" aria-label="오답 복습용 계산기">
+            <Calculator />
+            <div className="result-calc-tip">
+              계산기 영역을 클릭하면 키보드 숫자·사칙연산 키로 바로 계산할 수 있습니다.
+            </div>
+          </aside>
+        )}
       </main>
     </div>
   );

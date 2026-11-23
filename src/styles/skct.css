@@ -1755,6 +1755,37 @@ svg text {
   padding: 24px 24px 56px;
 }
 
+.result-container.with-calc {
+  max-width: 1480px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+.result-main {
+  min-width: 0;
+}
+
+.result-calc-sidebar {
+  position: sticky;
+  top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.result-calc-sidebar .calc-card {
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+}
+
+.result-calc-tip {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  padding: 0 4px;
+}
+
 .result-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -1832,11 +1863,21 @@ svg text {
   .omr-panel {
     width: 236px;
   }
+  .result-container.with-calc {
+    grid-template-columns: minmax(0, 1fr) 308px;
+  }
 }
 
 @media (max-width: 960px) {
   .lobby-grid {
     grid-template-columns: 1fr;
+  }
+  .result-container.with-calc {
+    grid-template-columns: 1fr;
+  }
+  .result-calc-sidebar {
+    position: static;
+    order: -1;
   }
   .result-kpi-grid {
     grid-template-columns: repeat(2, 1fr);
